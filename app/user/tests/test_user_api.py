@@ -60,11 +60,45 @@ class PublicUserApiTests(TestCase):
         ).exists()
         self.assertFalse(user_exists)
 
+    def test_create_token_for_user(self):
+        """test that a token is created for tha user"""
+        payload = {'email': 'test@cres.com', 'password': 'test1234'}
+        create_user(**payload)
+        res = self.client.post(TOKEN_URL, payload)
+        self.assertIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_create_token_invalid_credentials(self):
+        """TEst that token is not created if invalid credentials are given"""
+        create_user(email='test@cris.com', password='testpass')
+        payload = {'email': 'test@cris.com', 'password': '1234'}
+
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertNotIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_create_token_no_user(self):
+        """test that token is not created if user doesn't exist"""
+        payload = {'email': 'test@cris.com', 'password': 'testpass'}
+
+        res = self.client.post(TOKEN_URL, payload)
+        self.assertNotIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_token_missing_field(self):
+        """test that email and password are required"""
+        res = self.client.post(TOKEN_URL, {'email': 'one', 'password': ''})
+        self.assertNotIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_retrieve_user_unanthorized(self):
         """test that authentication is required for users"""
         res = self.client.get(ME_URL)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 
 
 class PrivateUserApiTests(TestCase):
